@@ -116,12 +116,22 @@
       stroke: var(--edge-color);
       stroke-width: 2;
       transition: stroke 0.3s, stroke-width 0.3s;
+      marker-end: url(#arrowhead);
     }
 
     .edge-path.active {
       stroke: var(--edge-active);
       stroke-width: 3;
       filter: drop-shadow(0 0 6px rgba(74,125,255,0.4));
+      marker-end: url(#arrowhead-active);
+    }
+
+    .edge-path.edge-context {
+      stroke-dasharray: 8 4;
+    }
+
+    .edge-path.edge-trigger {
+      stroke-dasharray: 3 3;
     }
 
     .edge-label {
@@ -136,6 +146,25 @@
 
     .edge-label.active {
       fill: var(--accent-blue);
+    }
+
+    .stage-label {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .stage-col {
+      position: absolute;
+      border-left: 1px dashed var(--grid-color);
+      pointer-events: none;
+      top: 0;
+      height: 10000px;
     }
 
     /* ═══ NODES ═══ */
@@ -689,7 +718,16 @@
   <div class="canvas-wrap" id="canvasWrap">
     <div class="canvas" id="canvas">
       <div class="canvas-grid"></div>
-      <svg class="edges-svg" id="edgesSvg"></svg>
+      <svg class="edges-svg" id="edgesSvg">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <path d="M 0 0 L 10 4 L 0 8 L 2 4 Z" fill="var(--edge-color)" />
+          </marker>
+          <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <path d="M 0 0 L 10 4 L 0 8 L 2 4 Z" fill="var(--edge-active)" />
+          </marker>
+        </defs>
+      </svg>
     </div>
 
     <div class="toolbar">
@@ -887,9 +925,80 @@ function loadNewFile() {
   input.click();
 }
 
+function autoLayout(data) {
+  const nodes = data.nodes;
+  const edges = data.edges;
+  const nodeIds = nodes.map(n => n.id);
+
+  // Build adjacency: for each node, which node IDs feed into it (via edges)
+  const incomingEdges = {};
+  nodeIds.forEach(id => incomingEdges[id] = new Set());
+  for (const edge of edges) {
+    if (incomingEdges[edge.to]) {
+      incomingEdges[edge.to].add(edge.from);
+    }
+  }
+
+  // Compute depth (longest path from root) for each node
+  const depth = {};
+  const computed = {};
+
+  function getDepth(id) {
+    if (computed[id]) return depth[id];
+    computed[id] = true;
+    const parents = incomingEdges[id];
+    if (!parents || parents.size === 0) {
+      depth[id] = 0;
+    } else {
+      depth[id] = Math.max(...[...parents].map(p => getDepth(p))) + 1;
+    }
+    return depth[id];
+  }
+
+  nodeIds.forEach(id => getDepth(id));
+
+  // Group nodes by depth
+  const columns = {};
+  let maxDepth = 0;
+  for (const node of nodes) {
+    const d = depth[node.id] || 0;
+    if (!columns[d]) columns[d] = [];
+    columns[d].push(node);
+    if (d > maxDepth) maxDepth = d;
+  }
+
+  // Assign positions: X by column, Y spread evenly
+  const COL_WIDTH = 320;
+  const ROW_HEIGHT = 180;
+
+  for (let d = 0; d <= maxDepth; d++) {
+    const col = columns[d] || [];
+    const totalHeight = col.length * ROW_HEIGHT;
+    const startY = -totalHeight / 2;
+    col.forEach((node, i) => {
+      node.position = {
+        x: d * COL_WIDTH,
+        y: startY + i * ROW_HEIGHT
+      };
+    });
+  }
+
+  // Store stage info for labels
+  data._stages = {};
+  for (let d = 0; d <= maxDepth; d++) {
+    data._stages[d] = {
+      x: d * COL_WIDTH,
+      count: (columns[d] || []).length
+    };
+  }
+  data._maxDepth = maxDepth;
+}
+
 function initFlow(data) {
   flowData = data;
   selectedNodeId = null;
+
+  autoLayout(data);
 
   document.getElementById('uploadOverlay').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
@@ -898,12 +1007,40 @@ function initFlow(data) {
   document.getElementById('projectStats').textContent =
     `${data.meta.total_steps} шагов · ${data.meta.models_used.length} моделей · ${data.meta.entry_file}`;
 
+  renderStageLabels();
   renderNodes();
   renderEdges();
   renderMinimap();
   fitView();
 
   resetSidebar();
+}
+
+function renderStageLabels() {
+  const canvas = document.getElementById('canvas');
+  canvas.querySelectorAll('.stage-label, .stage-col').forEach(el => el.remove());
+
+  if (!flowData._stages) return;
+  const stageNames = ['Старт', 'Этап 2', 'Этап 3', 'Этап 4', 'Этап 5', 'Этап 6', 'Этап 7', 'Этап 8', 'Этап 9', 'Этап 10'];
+
+  for (let d = 0; d <= flowData._maxDepth; d++) {
+    const stage = flowData._stages[d];
+    if (!stage) continue;
+
+    const label = document.createElement('div');
+    label.className = 'stage-label';
+    label.style.left = (stage.x + 5000 + 40) + 'px';
+    label.style.top = (5000 - 180) + 'px';
+    label.textContent = d === 0 ? 'Старт' : d === flowData._maxDepth ? 'Финал' : (stageNames[d] || `Этап ${d + 1}`);
+    canvas.appendChild(label);
+
+    if (d > 0) {
+      const col = document.createElement('div');
+      col.className = 'stage-col';
+      col.style.left = (stage.x + 5000 - 20) + 'px';
+      canvas.appendChild(col);
+    }
+  }
 }
 
 function renderNodes() {
@@ -952,7 +1089,10 @@ function renderNodes() {
 
 function renderEdges() {
   const svg = document.getElementById('edgesSvg');
+  // Keep defs, remove everything else
+  const defs = svg.querySelector('defs');
   svg.innerHTML = '';
+  if (defs) svg.appendChild(defs);
 
   for (const edge of flowData.edges) {
     const fromNode = flowData.nodes.find(n => n.id === edge.from);
@@ -968,7 +1108,8 @@ function renderEdges() {
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
-    path.setAttribute('class', 'edge-path');
+    const typeClass = edge.type === 'context' ? ' edge-context' : edge.type === 'trigger' ? ' edge-trigger' : '';
+    path.setAttribute('class', 'edge-path' + typeClass);
     path.dataset.from = edge.from;
     path.dataset.to = edge.to;
     svg.appendChild(path);
