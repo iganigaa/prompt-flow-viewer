@@ -598,6 +598,51 @@
     }
 
     .upload-demo:hover { color: var(--text-primary); }
+
+    .upload-paste {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .upload-paste textarea {
+      width: 100%;
+      height: 180px;
+      background: var(--bg-node);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      padding: 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .upload-paste textarea:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .upload-paste textarea::placeholder {
+      color: var(--text-dim);
+    }
+
+    .upload-paste-btn {
+      margin-top: 10px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--accent-green);
+      background: rgba(52,211,153,0.1);
+      color: var(--accent-green);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .upload-paste-btn:hover { background: rgba(52,211,153,0.2); }
   </style>
 </head>
 <body>
@@ -607,12 +652,17 @@
     <div class="upload-icon">⬡</div>
     <div class="upload-text">Prompt Flow Viewer</div>
     <div class="upload-sub">Загрузите prompt-chain.json для визуализации</div>
+    <div class="upload-paste">
+      <textarea id="jsonInput" placeholder='Вставьте JSON сюда...'></textarea>
+      <button class="upload-paste-btn" onclick="handlePaste()">Визуализировать</button>
+    </div>
+    <div class="upload-or">или</div>
     <label class="upload-btn">
       Выбрать файл
       <input type="file" accept=".json" style="display:none" onchange="handleFileUpload(event)" />
     </label>
     <div class="upload-or">или</div>
-    <button class="upload-demo" onclick="loadDemo()">Загрузить демо (index.html pipeline)</button>
+    <button class="upload-demo" onclick="loadDemo()">Загрузить демо</button>
   </div>
 </div>
 
@@ -796,6 +846,17 @@ function handleFileUpload(e) {
     }
   };
   reader.readAsText(file);
+}
+
+function handlePaste() {
+  const text = document.getElementById('jsonInput').value.trim();
+  if (!text) return;
+  try {
+    const data = JSON.parse(text);
+    initFlow(data);
+  } catch (err) {
+    alert('Ошибка парсинга JSON: ' + err.message);
+  }
 }
 
 function loadDemo() { initFlow(DEMO_DATA); }
