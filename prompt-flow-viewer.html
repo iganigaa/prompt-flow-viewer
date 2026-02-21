@@ -187,6 +187,24 @@
     .node-icon.web { background: rgba(34,211,238,0.15); color: var(--accent-cyan); }
     .node-icon.input { background: rgba(52,211,153,0.15); color: var(--accent-green); }
 
+    .node-step {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(74,125,255,0.4);
+    }
+
     .node-title {
       font-size: 13px;
       font-weight: 600;
@@ -892,7 +910,9 @@ function renderNodes() {
   const canvas = document.getElementById('canvas');
   canvas.querySelectorAll('.node').forEach(el => el.remove());
 
-  for (const node of flowData.nodes) {
+  for (let i = 0; i < flowData.nodes.length; i++) {
+    const node = flowData.nodes[i];
+    const stepNum = i + 1;
     const el = document.createElement('div');
     el.className = 'node';
     el.id = `node-${node.id}`;
@@ -908,6 +928,7 @@ function renderNodes() {
     const modelText = (node.models || []).map(m => m.split('/').pop()).join(', ');
 
     el.innerHTML = `
+      <div class="node-step">${stepNum}</div>
       <div class="node-connector input-conn"></div>
       <div class="node-connector output-conn"></div>
       <div class="node-header">
