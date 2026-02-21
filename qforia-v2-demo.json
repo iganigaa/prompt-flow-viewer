@@ -1,0 +1,284 @@
+{
+  "$schema": "prompt-chain/v2",
+  "meta": {
+    "project": "qforia-extended",
+    "description": "Мультирежимный аналитик запросов: глубокий анализ, покрытие, инжиниринг, сигналы",
+    "analyzed_at": "2026-02-21T14:00:00Z",
+    "total_instruments": 1,
+    "total_steps": 12,
+    "models_used": ["openai/gpt-4o", "anthropic/claude-sonnet-4", "google/gemini-2.0-flash-001", "x-ai/grok-3-mini-beta", "perplexity/sonar-pro"]
+  },
+
+  "instruments": [
+    {
+      "id": "query_analyzer",
+      "name": "Query Analyzer",
+      "description": "Анализ поисковых запросов в 4 режимах: Deep Analysis, Покрытие, Инжиниринг, Сигналы",
+      "entry_file": "src/app/api/fanout/route.ts",
+      "variables": {
+        "query": { "source": "user_input", "description": "Поисковый запрос пользователя" },
+        "url": { "source": "user_input", "description": "URL страницы для анализа (опционально)" },
+        "mode": { "source": "user_input", "description": "Выбранный режим анализа" }
+      },
+
+      "flows": [
+        {
+          "id": "deep_analysis",
+          "name": "Глубокий анализ",
+          "description": "Полный пайплайн: Fan-Out по 3 моделям → Merge → Аудит ЦА → 4 параллельные компиляции",
+          "default": true,
+          "condition": null,
+          "nodes": [
+            {
+              "id": "step_1",
+              "label": "Fan-Out: Анализ запроса",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["openai/gpt-4o", "anthropic/claude-sonnet-4", "google/gemini-2.0-flash-001"],
+              "prompt_template": "Глубокий анализ запроса: интент, субинтенты, ЦА, конкуренция",
+              "prompt_raw": "Ты — SEO-аналитик. Проведи глубокий анализ запроса \"${query}\".\n\n1. Определи основной интент\n2. Разложи на субинтенты (минимум 15)\n3. Определи сегменты ЦА\n4. Оцени конкурентность\n5. Предложи структуру контента",
+              "inputs": ["query"],
+              "outputs": ["fan_out_responses"],
+              "output_var": "fanOutResponses[modelId]",
+              "description": "Параллельный запрос к 3 моделям для получения независимых анализов запроса",
+              "position": { "x": 100, "y": 200 }
+            },
+            {
+              "id": "step_2",
+              "label": "Merge: Объединение анализов",
+              "type": "llm_call",
+              "execution": "sequential",
+              "trigger": "auto",
+              "models": ["x-ai/grok-3-mini-beta"],
+              "prompt_template": "Смысловая дедупликация и объединение 3 анализов",
+              "prompt_raw": "Тебе даны 3 независимых анализа запроса \"${query}\".\n\n<analysis_1>${fanOut_gpt4o}</analysis_1>\n<analysis_2>${fanOut_claude}</analysis_2>\n<analysis_3>${fanOut_gemini}</analysis_3>\n\nОбъедини их:\n1. Дедуплицируй субинтенты\n2. Объедини сегменты ЦА\n3. Создай единую структуру",
+              "inputs": ["step_1"],
+              "outputs": ["merged_analysis"],
+              "output_var": "mergedAnalysis",
+              "description": "Grok объединяет 3 анализа в единый документ с дедупликацией",
+              "position": { "x": 450, "y": 200 }
+            },
+            {
+              "id": "step_3",
+              "label": "Аудит ЦА и болей",
+              "type": "llm_call",
+              "execution": "sequential",
+              "trigger": "auto",
+              "models": ["x-ai/grok-3-mini-beta"],
+              "prompt_template": "Расширенный аудит: 4 сегмента ЦА × боли × интенты",
+              "prompt_raw": "На основе объединённого анализа:\n${mergedAnalysis}\n\nПроведи расширенный аудит ЦА:\n1. Смоделируй 4 сегмента ЦА\n2. Для каждого — 15-20 болей и интентов\n3. Составь портреты\n4. Определи триггеры принятия решений",
+              "inputs": ["step_2"],
+              "outputs": ["audience_audit"],
+              "output_var": "audienceAudit",
+              "description": "Глубокий аудит целевой аудитории на основе объединённого анализа",
+              "position": { "x": 800, "y": 200 }
+            },
+            {
+              "id": "step_4",
+              "label": "Web-ресерч (Perplexity)",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["perplexity/sonar-pro"],
+              "prompt_template": "Поиск ТОП-10 статей по запросу в рунете",
+              "prompt_raw": "Найди 10 лучших статей по запросу \"${query}\" в русскоязычном интернете.\nДля каждой: название, URL, краткое описание контента.\nВерни JSON.",
+              "inputs": ["query"],
+              "outputs": ["web_research"],
+              "output_var": "webResearch",
+              "description": "Perplexity ищет топовые статьи по запросу параллельно с основным пайплайном",
+              "shared": true,
+              "position": { "x": 450, "y": 450 }
+            },
+            {
+              "id": "step_5",
+              "label": "Компиляция: SEO-структура",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["anthropic/claude-sonnet-4"],
+              "prompt_template": "Объединённый анализ + аудит ЦА → структура SEO-статьи",
+              "prompt_raw": "На основе:\n<analysis>${mergedAnalysis}</analysis>\n<audience>${audienceAudit}</audience>\n\nСоставь детальную структуру SEO-статьи:\n- H1-H4 иерархия\n- Ключевые тезисы каждого блока\n- LSI-семантика\n- Внутренние перелинковки",
+              "inputs": ["step_3", "step_2"],
+              "outputs": ["seo_structure"],
+              "output_var": "seoStructure",
+              "description": "Claude компилирует SEO-структуру на основе анализа и аудита",
+              "position": { "x": 1150, "y": 50 }
+            },
+            {
+              "id": "step_6",
+              "label": "Компиляция: Контент-план",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["anthropic/claude-sonnet-4"],
+              "prompt_template": "Анализ + аудит → контент-план по кластерам",
+              "prompt_raw": "На основе:\n<analysis>${mergedAnalysis}</analysis>\n<audience>${audienceAudit}</audience>\n\nСоздай контент-план:\n- Кластеры тем\n- Приоритизация по трафику\n- Формат контента для каждого кластера",
+              "inputs": ["step_3", "step_2"],
+              "outputs": ["content_plan"],
+              "output_var": "contentPlan",
+              "description": "Claude составляет кластерный контент-план",
+              "position": { "x": 1150, "y": 200 }
+            },
+            {
+              "id": "step_7",
+              "label": "Компиляция: Рекомендации",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["openai/gpt-4o"],
+              "prompt_template": "Анализ + веб-ресерч → тактические SEO-рекомендации",
+              "prompt_raw": "Данные анализа:\n${mergedAnalysis}\n\nТОП-10 конкурентов:\n${webResearch}\n\nСоставь тактические рекомендации:\n1. Quick wins\n2. Среднесрочные задачи\n3. Долгосрочная стратегия",
+              "inputs": ["step_2", "step_4"],
+              "outputs": ["recommendations"],
+              "output_var": "recommendations",
+              "description": "GPT-4o формирует тактические SEO-рекомендации",
+              "position": { "x": 1150, "y": 350 }
+            },
+            {
+              "id": "step_8",
+              "label": "Компиляция: Итоговый отчёт",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "auto",
+              "models": ["google/gemini-2.0-flash-001"],
+              "prompt_template": "Все данные → финальный markdown-отчёт",
+              "prompt_raw": "Собери финальный отчёт из:\n<seo>${seoStructure}</seo>\n<content>${contentPlan}</content>\n<recs>${recommendations}</recs>\n<audience>${audienceAudit}</audience>\n\nФормат: markdown с таблицами и резюме.",
+              "inputs": ["step_5", "step_6", "step_7", "step_3"],
+              "outputs": ["final_report"],
+              "output_var": "finalReport",
+              "description": "Gemini собирает финальный отчёт из всех компиляций",
+              "position": { "x": 1500, "y": 200 }
+            }
+          ],
+          "edges": [
+            { "from": "step_1", "to": "step_2", "label": "fanOutResponses", "type": "data" },
+            { "from": "step_2", "to": "step_3", "label": "mergedAnalysis", "type": "data" },
+            { "from": "step_3", "to": "step_5", "label": "audienceAudit", "type": "data" },
+            { "from": "step_2", "to": "step_5", "label": "mergedAnalysis", "type": "data" },
+            { "from": "step_3", "to": "step_6", "label": "audienceAudit", "type": "data" },
+            { "from": "step_2", "to": "step_6", "label": "mergedAnalysis", "type": "data" },
+            { "from": "step_2", "to": "step_7", "label": "mergedAnalysis", "type": "data" },
+            { "from": "step_4", "to": "step_7", "label": "webResearch", "type": "data" },
+            { "from": "step_5", "to": "step_8", "label": "seoStructure", "type": "data" },
+            { "from": "step_6", "to": "step_8", "label": "contentPlan", "type": "data" },
+            { "from": "step_7", "to": "step_8", "label": "recommendations", "type": "data" },
+            { "from": "step_3", "to": "step_8", "label": "audienceAudit", "type": "data" }
+          ]
+        },
+        {
+          "id": "coverage",
+          "name": "Покрытие субинтентов",
+          "description": "Анализ покрытия страницы по субинтентам запроса",
+          "default": false,
+          "condition": "mode === 'Покрытие субинтентов'",
+          "nodes": [
+            {
+              "id": "step_9",
+              "label": "Анализ покрытия страницы",
+              "type": "llm_call",
+              "execution": "sequential",
+              "trigger": "conditional",
+              "condition": "mode === 'Покрытие субинтентов'",
+              "models": ["anthropic/claude-sonnet-4"],
+              "prompt_template": "URL + запрос → матрица покрытия субинтентов",
+              "prompt_raw": "Запрос: \"${query}\"\nURL страницы: ${url}\nКонтент страницы: ${pageContent}\n\nПроведи анализ покрытия:\n1. Разложи запрос на субинтенты\n2. Для каждого субинтента оцени покрытие страницей (0-100%)\n3. Выдели непокрытые темы\n4. Составь матрицу покрытия",
+              "inputs": ["query", "url"],
+              "outputs": ["coverage_matrix"],
+              "output_var": "coverageMatrix",
+              "description": "Claude анализирует насколько страница покрывает все субинтенты запроса",
+              "position": { "x": 100, "y": 200 }
+            }
+          ],
+          "edges": []
+        },
+        {
+          "id": "grounding",
+          "name": "Инжиниринг промптов",
+          "description": "Генерация SEO-промптов на основе анализа конкурентов",
+          "default": false,
+          "condition": "mode === 'Инжиниринг'",
+          "nodes": [
+            {
+              "id": "step_10a",
+              "label": "Скачивание конкурентов",
+              "type": "web_fetch",
+              "execution": "parallel",
+              "trigger": "conditional",
+              "condition": "mode === 'Инжиниринг'",
+              "models": [],
+              "prompt_template": "Скачать контент ТОП-10 страниц из SERP",
+              "prompt_raw": "fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; QforiaBot/1.0)' } })",
+              "inputs": ["query"],
+              "outputs": ["competitor_pages"],
+              "output_var": "competitorPages[]",
+              "description": "Параллельное скачивание ТОП-10 страниц из поисковой выдачи",
+              "position": { "x": 100, "y": 100 }
+            },
+            {
+              "id": "step_10b",
+              "label": "Perplexity: SERP-контекст",
+              "type": "llm_call",
+              "execution": "parallel",
+              "trigger": "conditional",
+              "condition": "mode === 'Инжиниринг'",
+              "models": ["perplexity/sonar-pro"],
+              "prompt_template": "Поиск контекста выдачи по запросу",
+              "prompt_raw": "Проанализируй поисковую выдачу по запросу \"${query}\":\n1. Какие типы контента в ТОПе\n2. Средняя длина контента\n3. Общие паттерны структуры\n4. Ключевые отличия лидеров",
+              "inputs": ["query"],
+              "outputs": ["serp_context"],
+              "output_var": "serpContext",
+              "description": "Perplexity собирает мета-информацию о поисковой выдаче",
+              "position": { "x": 100, "y": 350 }
+            },
+            {
+              "id": "step_11",
+              "label": "Генерация SEO-промптов",
+              "type": "llm_call",
+              "execution": "sequential",
+              "trigger": "auto",
+              "models": ["anthropic/claude-sonnet-4"],
+              "prompt_template": "Конкуренты + SERP → набор оптимизированных промптов",
+              "prompt_raw": "На основе анализа конкурентов:\n${competitorPages}\n\nКонтекст выдачи:\n${serpContext}\n\nСгенерируй набор SEO-промптов для создания контента, который превзойдёт конкурентов по запросу \"${query}\".",
+              "inputs": ["step_10a", "step_10b"],
+              "outputs": ["seo_prompts"],
+              "output_var": "seoPrompts",
+              "description": "Claude генерирует оптимизированные промпты на основе анализа конкурентов",
+              "position": { "x": 500, "y": 200 }
+            }
+          ],
+          "edges": [
+            { "from": "step_10a", "to": "step_11", "label": "competitorPages", "type": "data" },
+            { "from": "step_10b", "to": "step_11", "label": "serpContext", "type": "data" }
+          ]
+        },
+        {
+          "id": "signals",
+          "name": "Сигналы",
+          "description": "Мониторинг SEO-сигналов и аномалий",
+          "default": false,
+          "condition": "mode === 'Сигналы'",
+          "nodes": [
+            {
+              "id": "step_12",
+              "label": "Анализ SEO-сигналов",
+              "type": "llm_call",
+              "execution": "sequential",
+              "trigger": "conditional",
+              "condition": "mode === 'Сигналы'",
+              "models": ["openai/gpt-4o"],
+              "prompt_template": "Запрос + URL → диагностика SEO-сигналов и аномалий",
+              "prompt_raw": "Запрос: \"${query}\"\nURL: ${url}\nКонтент: ${pageContent}\n\nПроведи диагностику SEO-сигналов:\n1. Технические сигналы (скорость, мобильность, Core Web Vitals)\n2. Контентные сигналы (E-E-A-T, релевантность, полнота)\n3. Поведенческие сигналы (CTR, dwell time предположения)\n4. Аномалии и красные флаги\n5. Приоритезированный список исправлений",
+              "inputs": ["query", "url"],
+              "outputs": ["signal_report"],
+              "output_var": "signalReport",
+              "description": "GPT-4o проводит полную диагностику SEO-сигналов страницы",
+              "position": { "x": 100, "y": 200 }
+            }
+          ],
+          "edges": []
+        }
+      ]
+    }
+  ]
+}

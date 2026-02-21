@@ -1,0 +1,172 @@
+{
+  "$schema": "prompt-chain/v1",
+  "meta": {
+    "project": "company-rating-generator",
+    "description": "Мультимодельный пайплайн поиска и рейтинга компаний по нише",
+    "entry_file": "index.html",
+    "analyzed_at": "2026-02-21T12:00:00Z",
+    "total_steps": 8,
+    "models_used": ["openai/gpt-4o", "google/gemini-2.0-flash-001", "anthropic/claude-sonnet-4", "x-ai/grok-3-mini-beta", "perplexity/sonar-pro"]
+  },
+
+  "variables": {
+    "niche": {
+      "source": "user_input",
+      "element_id": "niche",
+      "description": "Название ниши"
+    },
+    "geo": {
+      "source": "user_input",
+      "element_id": "geo",
+      "description": "Гео (необязательно)"
+    },
+    "apiKey": {
+      "source": "user_input",
+      "element_id": "apiKey",
+      "description": "API-ключ OpenRouter"
+    }
+  },
+
+  "nodes": [
+    {
+      "id": "step_1",
+      "label": "Список 30 компаний",
+      "type": "llm_call",
+      "execution": "parallel",
+      "models": ["openai/gpt-4o", "google/gemini-2.0-flash-001", "anthropic/claude-sonnet-4"],
+      "prompt_template": "Составь список 30 ${niche}${geoStr}",
+      "prompt_raw": "Составь список 30 {niche} в {geo}",
+      "inputs": ["niche", "geo"],
+      "outputs": ["step1_responses"],
+      "output_var": "conversations[model.id] → first assistant message",
+      "description": "Параллельный запрос к 3 моделям: получить списки компаний",
+      "position": { "x": 100, "y": 200 }
+    },
+    {
+      "id": "step_2",
+      "label": "Критерии оценки",
+      "type": "llm_call",
+      "execution": "parallel",
+      "models": ["openai/gpt-4o", "google/gemini-2.0-flash-001", "anthropic/claude-sonnet-4"],
+      "prompt_template": "Почему именно эти сервисы были поставлены в ТОП. 1. Составь список критериев... 2. Разгруппируй... 3. Отранжируй...",
+      "prompt_raw": "Почему именно эти сервисы были поставлены в ТОП. 1. Составь список критериев, по которым ты оценивал сайты 2. Разгруппируй эти критерии на смысловые группы 3. Отранжируй эти критерии в порядке уменьшения веса влияния на место в рейтинге",
+      "inputs": ["step_1"],
+      "outputs": ["criteria_per_model"],
+      "output_var": "conversations[model.id] → last assistant message",
+      "description": "Follow-up в тех же чатах: почему эти компании, по каким критериям",
+      "position": { "x": 400, "y": 200 }
+    },
+    {
+      "id": "step_3",
+      "label": "Дедупликация критериев",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["x-ai/grok-3-mini-beta"],
+      "prompt_template": "Смысловая дедупликация критериев... Итоговая таблица: критерий + методология...",
+      "prompt_raw": "Представь, что ты человек, который провел ресерч данной ниши и тебе необходимо составить собственный рейтинг...\n\nСписок критериев:\n<data>\n${criteriaBlocks}\n</data>",
+      "inputs": ["step_2"],
+      "outputs": ["grokCriteriaRaw"],
+      "output_var": "grokCriteriaRaw",
+      "description": "Grok объединяет критерии от 3 моделей в единую таблицу",
+      "position": { "x": 700, "y": 100 }
+    },
+    {
+      "id": "step_4",
+      "label": "Аудитории и боли ЦА",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["x-ai/grok-3-mini-beta"],
+      "prompt_template": "Смоделируй 4 сегмента ЦА для ниши '${niche}'... Для каждого 15-20 болей/интентов...",
+      "prompt_raw": "Ты — маркетолог-аналитик и UX-специалист. Тебе дана ниша: \"{niche}\".\n\nСмоделируй 4 сегмента целевой аудитории...\n\nБЛОК 1 — markdown-таблица | ЦА | Боль / Интент |\nБЛОК 2 — портреты ЦА",
+      "inputs": ["niche"],
+      "outputs": ["grokAudienceRaw"],
+      "output_var": "grokAudienceRaw",
+      "description": "Grok моделирует сегменты ЦА с болями и интентами",
+      "position": { "x": 700, "y": 300 }
+    },
+    {
+      "id": "step_5",
+      "label": "XML-компилятор критериев",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["anthropic/claude-sonnet-4"],
+      "prompt_template": "Компилируй критерии + аудитории в XML: <criteria_structure> с groups, criteria, methodology...",
+      "prompt_raw": "Сейчас мы будем компилировать следующие данные:\n\n=== ИТОГОВЫЙ АНАЛИЗ КРИТЕРИЕВ ===\n${grokCriteriaRaw}\n\n=== АУДИТОРИИ И ИХ БОЛИ ===\n${grokAudienceRaw}\n\n...преобразовать в XML-формат с группами и критериями...",
+      "inputs": ["step_3", "step_4"],
+      "outputs": ["compilerRawXml"],
+      "output_var": "compilerRawXml",
+      "description": "Claude компилирует всё в структурированный XML",
+      "position": { "x": 1000, "y": 200 }
+    },
+    {
+      "id": "step_6",
+      "label": "Генерация HTML-сайта",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["anthropic/claude-sonnet-4"],
+      "prompt_template": "Senior SEO + Frontend Designer-Engineer → полный HTML рейтинг-портал с дизайн-системой, Schema.org, E-E-A-T...",
+      "prompt_raw": "[ДЛИННЫЙ ПРОМПТ: роль, дизайн-система, структура страницы, карточки TOP-5, технические требования] + ${compilerRawXml}",
+      "inputs": ["step_5", "niche", "geo"],
+      "outputs": ["canvasRawHtml"],
+      "output_var": "canvasRawHtml",
+      "description": "Claude генерирует полный HTML рейтинг-сайт",
+      "position": { "x": 1300, "y": 100 }
+    },
+    {
+      "id": "step_6_5",
+      "label": "Поиск рейтингов (Perplexity)",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["perplexity/sonar-pro"],
+      "prompt_template": "Найди 10-15 рейтингов компаний по '${niche}' в рунете → JSON [{name, url}]",
+      "prompt_raw": "Найди 10-15 лучших рейтингов и обзоров компаний по теме \"{niche}\" в русскоязычном интернете...\nВерни ТОЛЬКО JSON-массив [{\"name\": \"...\", \"url\": \"...\"}]",
+      "inputs": ["niche", "geo"],
+      "outputs": ["extractedRatings", "downloadedRatings"],
+      "output_var": "extractedRatings → downloadRatingSite() → downloadedRatings",
+      "description": "Perplexity ищет рейтинги, затем скачиваются через CORS-прокси",
+      "position": { "x": 1300, "y": 300 }
+    },
+    {
+      "id": "step_7a",
+      "label": "Извлечение + скачивание сайтов",
+      "type": "llm_call",
+      "execution": "sequential",
+      "models": ["anthropic/claude-sonnet-4"],
+      "prompt_template": "Извлеки уникальные компании + URL из ответов шага 1 → JSON [{name, url}]",
+      "prompt_raw": "Из текста ниже извлеки все уникальные компании. Для каждой определи URL.\nВерни JSON [{\"name\": \"...\", \"url\": \"...\"}]\n\n${step1Responses}",
+      "inputs": ["step_1"],
+      "outputs": ["extractedCompanies", "downloadedSites"],
+      "output_var": "extractedCompanies → downloadCompanySite() → downloadedSites",
+      "description": "Claude парсит компании, затем их сайты скачиваются через CORS-прокси",
+      "position": { "x": 1300, "y": 500 }
+    },
+    {
+      "id": "step_7b",
+      "label": "Наполнение контентом",
+      "type": "llm_call",
+      "execution": "sequential",
+      "trigger": "manual_button",
+      "models": ["anthropic/claude-sonnet-4"],
+      "prompt_template": "Наполни HTML-шаблон реальными данными: рейтинги + сайты компаний + данные пользователя → компания пользователя на 1 месте",
+      "prompt_raw": "РОЛЬ: Senior SEO-копирайтер...\n\n1. HTML-ШАБЛОН:\n${canvasRawHtml}\n\n2. ДАННЫЕ РЕЙТИНГОВ:\n${ratingDataBlocks}\n\n3. ДАННЫЕ САЙТОВ:\n${companyDataBlocks}\n\n4. КОМПАНИЯ ПОЛЬЗОВАТЕЛЯ:\n${userCompanyData}\n\n5. XML-КРИТЕРИИ:\n${compilerRawXml}",
+      "inputs": ["step_6", "step_6_5", "step_7a", "step_5", "user_company_data"],
+      "outputs": ["canvasRawHtml_filled"],
+      "output_var": "canvasRawHtml (overwritten)",
+      "description": "Claude заполняет шаблон реальными данными компаний",
+      "position": { "x": 1600, "y": 300 }
+    }
+  ],
+
+  "edges": [
+    { "from": "step_1", "to": "step_2", "label": "контекст чата (conversations)", "type": "context" },
+    { "from": "step_2", "to": "step_3", "label": "criteriaBlocks (последний ответ каждой модели)", "type": "data" },
+    { "from": "step_3", "to": "step_5", "label": "grokCriteriaRaw", "type": "data" },
+    { "from": "step_4", "to": "step_5", "label": "grokAudienceRaw", "type": "data" },
+    { "from": "step_5", "to": "step_6", "label": "compilerRawXml", "type": "data" },
+    { "from": "step_5", "to": "step_7b", "label": "compilerRawXml", "type": "data" },
+    { "from": "step_6", "to": "step_7b", "label": "canvasRawHtml (шаблон)", "type": "data" },
+    { "from": "step_6_5", "to": "step_7b", "label": "downloadedRatings (тексты рейтингов)", "type": "data" },
+    { "from": "step_1", "to": "step_7a", "label": "step1Responses (первые ответы)", "type": "data" },
+    { "from": "step_7a", "to": "step_7b", "label": "downloadedSites (тексты сайтов)", "type": "data" }
+  ]
+}

@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
   <title>Prompt Flow Viewer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -116,22 +115,12 @@
       stroke: var(--edge-color);
       stroke-width: 2;
       transition: stroke 0.3s, stroke-width 0.3s;
-      marker-end: url(#arrowhead);
     }
 
     .edge-path.active {
       stroke: var(--edge-active);
       stroke-width: 3;
       filter: drop-shadow(0 0 6px rgba(74,125,255,0.4));
-      marker-end: url(#arrowhead-active);
-    }
-
-    .edge-path.edge-context {
-      stroke-dasharray: 8 4;
-    }
-
-    .edge-path.edge-trigger {
-      stroke-dasharray: 3 3;
     }
 
     .edge-label {
@@ -146,25 +135,6 @@
 
     .edge-label.active {
       fill: var(--accent-blue);
-    }
-
-    .stage-label {
-      position: absolute;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-dim);
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .stage-col {
-      position: absolute;
-      border-left: 1px dashed var(--grid-color);
-      pointer-events: none;
-      top: 0;
-      height: 10000px;
     }
 
     /* ═══ NODES ═══ */
@@ -215,24 +185,8 @@
     .node-icon.transform { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
     .node-icon.web { background: rgba(34,211,238,0.15); color: var(--accent-cyan); }
     .node-icon.input { background: rgba(52,211,153,0.15); color: var(--accent-green); }
-
-    .node-step {
-      position: absolute;
-      top: -10px;
-      left: -10px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1;
-      box-shadow: 0 2px 8px rgba(74,125,255,0.4);
-    }
+    .node-icon.router { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+    .node-icon.conditional { background: rgba(239,68,68,0.15); color: var(--accent-red); }
 
     .node-title {
       font-size: 13px;
@@ -646,50 +600,81 @@
 
     .upload-demo:hover { color: var(--text-primary); }
 
-    .upload-paste {
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
+    /* ═══ FLOW SELECTOR ═══ */
+    .flow-nav {
+      position: absolute;
+      top: 52px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
     }
 
-    .upload-paste textarea {
-      width: 100%;
-      height: 180px;
-      background: var(--bg-node);
+    .flow-nav-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .flow-nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      padding: 0 4px;
+    }
+
+    .flow-tab {
+      padding: 5px 12px;
+      border-radius: 6px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      padding: 12px;
-      resize: vertical;
-      outline: none;
-      transition: border-color 0.2s;
+      background: var(--bg-node);
+      color: var(--text-secondary);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
     }
 
-    .upload-paste textarea:focus {
+    .flow-tab:hover { background: var(--bg-node-hover); color: var(--text-primary); }
+
+    .flow-tab.active {
+      background: var(--accent-blue);
+      color: white;
       border-color: var(--accent-blue);
     }
 
-    .upload-paste textarea::placeholder {
-      color: var(--text-dim);
+    .flow-tab.conditional {
+      border-style: dashed;
     }
 
-    .upload-paste-btn {
-      margin-top: 10px;
-      padding: 10px 24px;
-      border-radius: 8px;
-      border: 1px solid var(--accent-green);
-      background: rgba(52,211,153,0.1);
-      color: var(--accent-green);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
+    .flow-tab.conditional.active {
+      border-style: solid;
+    }
+
+    /* ═══ FLOW GROUP BOX ═══ */
+    .flow-group-box {
+      position: absolute;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      background: rgba(74,125,255,0.02);
+      pointer-events: none;
+    }
+
+    .flow-group-label {
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      padding: 2px 10px;
+      font-size: 11px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
+      color: var(--text-dim);
+      background: var(--bg-canvas);
+      border-radius: 4px;
     }
-
-    .upload-paste-btn:hover { background: rgba(52,211,153,0.2); }
   </style>
 </head>
 <body>
@@ -699,17 +684,21 @@
     <div class="upload-icon">⬡</div>
     <div class="upload-text">Prompt Flow Viewer</div>
     <div class="upload-sub">Загрузите prompt-chain.json для визуализации</div>
-    <div class="upload-paste">
-      <textarea id="jsonInput" placeholder='Вставьте JSON сюда...'></textarea>
-      <button class="upload-paste-btn" onclick="handlePaste()">Визуализировать</button>
-    </div>
-    <div class="upload-or">или</div>
     <label class="upload-btn">
       Выбрать файл
       <input type="file" accept=".json" style="display:none" onchange="handleFileUpload(event)" />
     </label>
-    <div class="upload-or">или</div>
-    <button class="upload-demo" onclick="loadDemo()">Загрузить демо</button>
+    <div class="upload-or">или вставьте JSON</div>
+    <textarea id="jsonInput" spellcheck="false" placeholder='{"$schema":"prompt-chain/v2", ...}' style="width:500px;max-width:90vw;height:180px;background:var(--bg-prompt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;resize:vertical;line-height:1.5;"></textarea>
+    <div style="margin-top:10px;">
+      <button class="upload-btn" onclick="loadFromTextarea()" style="padding:10px 24px;font-size:13px;">Загрузить JSON</button>
+    </div>
+    <div class="upload-or">или демо</div>
+    <div>
+      <button class="upload-demo" onclick="loadDemo('v1')">Демо v1 (single flow)</button>
+      <span style="color:var(--text-dim);margin:0 4px;">|</span>
+      <button class="upload-demo" onclick="loadDemo('v2')">Демо v2 (multi-flow Qforia)</button>
+    </div>
   </div>
 </div>
 
@@ -718,16 +707,7 @@
   <div class="canvas-wrap" id="canvasWrap">
     <div class="canvas" id="canvas">
       <div class="canvas-grid"></div>
-      <svg class="edges-svg" id="edgesSvg">
-        <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-            <path d="M 0 0 L 10 4 L 0 8 L 2 4 Z" fill="var(--edge-color)" />
-          </marker>
-          <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-            <path d="M 0 0 L 10 4 L 0 8 L 2 4 Z" fill="var(--edge-active)" />
-          </marker>
-        </defs>
-      </svg>
+      <svg class="edges-svg" id="edgesSvg"></svg>
     </div>
 
     <div class="toolbar">
@@ -737,6 +717,8 @@
       <button class="toolbar-btn" onclick="loadNewFile()">↑ Загрузить</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Тёмная / Светлая тема"></button>
     </div>
+
+    <div class="flow-nav" id="flowNav" style="display:none;"></div>
 
     <div class="project-info" id="projectInfo">
       <div class="project-name" id="projectName"></div>
@@ -762,9 +744,50 @@
 
 <script>
 let flowData = null;
+let normalizedData = null;
+let currentInstrumentIdx = 0;
+let currentFlowIdx = 0;
+let currentNodes = [];
+let currentEdges = [];
 let selectedNodeId = null;
 let panX = 0, panY = 0, zoom = 1;
 let isPanning = false, panStartX = 0, panStartY = 0;
+
+function normalizeToV2(data) {
+  if (data.$schema === 'prompt-chain/v2' && data.instruments) return data;
+  return {
+    $schema: 'prompt-chain/v2',
+    meta: {
+      ...data.meta,
+      total_instruments: 1
+    },
+    instruments: [{
+      id: 'instrument_1',
+      name: data.meta.project || 'Main',
+      description: data.meta.description || '',
+      entry_file: data.meta.entry_file || '',
+      variables: data.variables || {},
+      flows: [{
+        id: 'main',
+        name: 'Основной поток',
+        description: data.meta.description || '',
+        default: true,
+        condition: null,
+        nodes: data.nodes || [],
+        edges: data.edges || []
+      }]
+    }]
+  };
+}
+
+function setCurrentFlow(instIdx, flowIdx) {
+  currentInstrumentIdx = instIdx;
+  currentFlowIdx = flowIdx;
+  const inst = normalizedData.instruments[instIdx];
+  const flow = inst.flows[flowIdx];
+  currentNodes = flow.nodes;
+  currentEdges = flow.edges;
+}
 
 const DEMO_DATA = {
   "$schema": "prompt-chain/v1",
@@ -889,6 +912,8 @@ const DEMO_DATA = {
   ]
 };
 
+const DEMO_DATA_V2 = {"$schema":"prompt-chain/v2","meta":{"project":"qforia-extended","description":"Мультирежимный аналитик запросов: глубокий анализ, покрытие, инжиниринг, сигналы","analyzed_at":"2026-02-21T14:00:00Z","total_instruments":1,"total_steps":12,"models_used":["openai/gpt-4o","anthropic/claude-sonnet-4","google/gemini-2.0-flash-001","x-ai/grok-3-mini-beta","perplexity/sonar-pro"]},"instruments":[{"id":"query_analyzer","name":"Query Analyzer","description":"Анализ поисковых запросов в 4 режимах","entry_file":"src/app/api/fanout/route.ts","variables":{"query":{"source":"user_input","description":"Поисковый запрос"},"url":{"source":"user_input","description":"URL страницы"},"mode":{"source":"user_input","description":"Режим анализа"}},"flows":[{"id":"deep_analysis","name":"Глубокий анализ","description":"Fan-Out → Merge → Аудит ЦА → 4 компиляции","default":true,"condition":null,"nodes":[{"id":"step_1","label":"Fan-Out: Анализ запроса","type":"llm_call","execution":"parallel","trigger":"auto","models":["openai/gpt-4o","anthropic/claude-sonnet-4","google/gemini-2.0-flash-001"],"prompt_template":"Глубокий анализ запроса: интент, субинтенты, ЦА","prompt_raw":"Ты — SEO-аналитик. Проведи глубокий анализ запроса \"${query}\".","inputs":["query"],"outputs":["fan_out_responses"],"output_var":"fanOutResponses[modelId]","description":"Параллельный запрос к 3 моделям","position":{"x":100,"y":200}},{"id":"step_2","label":"Merge: Объединение","type":"llm_call","execution":"sequential","trigger":"auto","models":["x-ai/grok-3-mini-beta"],"prompt_template":"Дедупликация и объединение 3 анализов","prompt_raw":"Объедини 3 анализа запроса \"${query}\".","inputs":["step_1"],"outputs":["merged_analysis"],"output_var":"mergedAnalysis","description":"Grok объединяет 3 анализа","position":{"x":450,"y":200}},{"id":"step_3","label":"Аудит ЦА и болей","type":"llm_call","execution":"sequential","trigger":"auto","models":["x-ai/grok-3-mini-beta"],"prompt_template":"4 сегмента ЦА × боли × интенты","prompt_raw":"Проведи расширенный аудит ЦА на основе ${mergedAnalysis}.","inputs":["step_2"],"outputs":["audience_audit"],"output_var":"audienceAudit","description":"Аудит целевой аудитории","position":{"x":800,"y":200}},{"id":"step_4","label":"Web-ресерч (Perplexity)","type":"llm_call","execution":"parallel","trigger":"auto","models":["perplexity/sonar-pro"],"prompt_template":"ТОП-10 статей по запросу","prompt_raw":"Найди 10 лучших статей по \"${query}\".","inputs":["query"],"outputs":["web_research"],"output_var":"webResearch","description":"Perplexity ищет статьи параллельно","shared":true,"position":{"x":450,"y":450}},{"id":"step_5","label":"SEO-структура","type":"llm_call","execution":"parallel","trigger":"auto","models":["anthropic/claude-sonnet-4"],"prompt_template":"Анализ + аудит → структура SEO-статьи","prompt_raw":"Составь структуру SEO-статьи.","inputs":["step_3","step_2"],"outputs":["seo_structure"],"output_var":"seoStructure","description":"Claude компилирует SEO-структуру","position":{"x":1150,"y":50}},{"id":"step_6","label":"Контент-план","type":"llm_call","execution":"parallel","trigger":"auto","models":["anthropic/claude-sonnet-4"],"prompt_template":"Анализ + аудит → контент-план","prompt_raw":"Создай контент-план по кластерам.","inputs":["step_3","step_2"],"outputs":["content_plan"],"output_var":"contentPlan","description":"Claude составляет контент-план","position":{"x":1150,"y":200}},{"id":"step_7","label":"Рекомендации","type":"llm_call","execution":"parallel","trigger":"auto","models":["openai/gpt-4o"],"prompt_template":"Анализ + веб-ресерч → рекомендации","prompt_raw":"Составь тактические рекомендации.","inputs":["step_2","step_4"],"outputs":["recommendations"],"output_var":"recommendations","description":"GPT-4o формирует рекомендации","position":{"x":1150,"y":350}},{"id":"step_8","label":"Итоговый отчёт","type":"llm_call","execution":"parallel","trigger":"auto","models":["google/gemini-2.0-flash-001"],"prompt_template":"Все данные → финальный отчёт","prompt_raw":"Собери финальный отчёт.","inputs":["step_5","step_6","step_7","step_3"],"outputs":["final_report"],"output_var":"finalReport","description":"Gemini собирает финальный отчёт","position":{"x":1500,"y":200}}],"edges":[{"from":"step_1","to":"step_2","label":"fanOutResponses","type":"data"},{"from":"step_2","to":"step_3","label":"mergedAnalysis","type":"data"},{"from":"step_3","to":"step_5","label":"audienceAudit","type":"data"},{"from":"step_2","to":"step_5","label":"mergedAnalysis","type":"data"},{"from":"step_3","to":"step_6","label":"audienceAudit","type":"data"},{"from":"step_2","to":"step_6","label":"mergedAnalysis","type":"data"},{"from":"step_2","to":"step_7","label":"mergedAnalysis","type":"data"},{"from":"step_4","to":"step_7","label":"webResearch","type":"data"},{"from":"step_5","to":"step_8","label":"seoStructure","type":"data"},{"from":"step_6","to":"step_8","label":"contentPlan","type":"data"},{"from":"step_7","to":"step_8","label":"recommendations","type":"data"},{"from":"step_3","to":"step_8","label":"audienceAudit","type":"data"}]},{"id":"coverage","name":"Покрытие субинтентов","description":"Анализ покрытия страницы","default":false,"condition":"mode === 'Покрытие субинтентов'","nodes":[{"id":"step_9","label":"Анализ покрытия","type":"llm_call","execution":"sequential","trigger":"conditional","condition":"mode === 'Покрытие субинтентов'","models":["anthropic/claude-sonnet-4"],"prompt_template":"URL + запрос → матрица покрытия","prompt_raw":"Проведи анализ покрытия страницы ${url} по запросу \"${query}\".","inputs":["query","url"],"outputs":["coverage_matrix"],"output_var":"coverageMatrix","description":"Claude анализирует покрытие субинтентов","position":{"x":100,"y":200}}],"edges":[]},{"id":"grounding","name":"Инжиниринг промптов","description":"SEO-промпты на основе конкурентов","default":false,"condition":"mode === 'Инжиниринг'","nodes":[{"id":"step_10a","label":"Скачивание конкурентов","type":"web_fetch","execution":"parallel","trigger":"conditional","condition":"mode === 'Инжиниринг'","models":[],"prompt_template":"Скачать ТОП-10 из SERP","prompt_raw":"fetch(url)","inputs":["query"],"outputs":["competitor_pages"],"output_var":"competitorPages[]","description":"Скачивание ТОП-10 страниц","position":{"x":100,"y":100}},{"id":"step_10b","label":"SERP-контекст","type":"llm_call","execution":"parallel","trigger":"conditional","condition":"mode === 'Инжиниринг'","models":["perplexity/sonar-pro"],"prompt_template":"Контекст выдачи по запросу","prompt_raw":"Проанализируй SERP по \"${query}\".","inputs":["query"],"outputs":["serp_context"],"output_var":"serpContext","description":"Perplexity: мета-информация о выдаче","position":{"x":100,"y":350}},{"id":"step_11","label":"Генерация SEO-промптов","type":"llm_call","execution":"sequential","trigger":"auto","models":["anthropic/claude-sonnet-4"],"prompt_template":"Конкуренты + SERP → промпты","prompt_raw":"Сгенерируй SEO-промпты на основе ${competitorPages} и ${serpContext}.","inputs":["step_10a","step_10b"],"outputs":["seo_prompts"],"output_var":"seoPrompts","description":"Claude генерирует оптимизированные промпты","position":{"x":500,"y":200}}],"edges":[{"from":"step_10a","to":"step_11","label":"competitorPages","type":"data"},{"from":"step_10b","to":"step_11","label":"serpContext","type":"data"}]},{"id":"signals","name":"Сигналы","description":"Мониторинг SEO-сигналов","default":false,"condition":"mode === 'Сигналы'","nodes":[{"id":"step_12","label":"Анализ SEO-сигналов","type":"llm_call","execution":"sequential","trigger":"conditional","condition":"mode === 'Сигналы'","models":["openai/gpt-4o"],"prompt_template":"Диагностика SEO-сигналов","prompt_raw":"Проведи диагностику SEO-сигналов для ${url} по запросу \"${query}\".","inputs":["query","url"],"outputs":["signal_report"],"output_var":"signalReport","description":"GPT-4o диагностирует SEO-сигналы","position":{"x":100,"y":200}}],"edges":[]}]}]};
+
 function handleFileUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -904,18 +929,21 @@ function handleFileUpload(e) {
   reader.readAsText(file);
 }
 
-function handlePaste() {
-  const text = document.getElementById('jsonInput').value.trim();
-  if (!text) return;
+function loadDemo(version) {
+  if (version === 'v2') { initFlow(DEMO_DATA_V2); }
+  else { initFlow(DEMO_DATA); }
+}
+
+function loadFromTextarea() {
+  const raw = document.getElementById('jsonInput').value.trim();
+  if (!raw) { alert('Вставьте JSON в поле'); return; }
   try {
-    const data = JSON.parse(text);
+    const data = JSON.parse(raw);
     initFlow(data);
   } catch (err) {
     alert('Ошибка парсинга JSON: ' + err.message);
   }
 }
-
-function loadDemo() { initFlow(DEMO_DATA); }
 
 function loadNewFile() {
   const input = document.createElement('input');
@@ -925,139 +953,82 @@ function loadNewFile() {
   input.click();
 }
 
-function autoLayout(data) {
-  const nodes = data.nodes;
-  const edges = data.edges;
-  const nodeIds = nodes.map(n => n.id);
-
-  // Build adjacency: for each node, which node IDs feed into it (via edges)
-  const incomingEdges = {};
-  nodeIds.forEach(id => incomingEdges[id] = new Set());
-  for (const edge of edges) {
-    if (incomingEdges[edge.to]) {
-      incomingEdges[edge.to].add(edge.from);
-    }
-  }
-
-  // Compute depth (longest path from root) for each node
-  const depth = {};
-  const computed = {};
-
-  function getDepth(id) {
-    if (computed[id]) return depth[id];
-    computed[id] = true;
-    const parents = incomingEdges[id];
-    if (!parents || parents.size === 0) {
-      depth[id] = 0;
-    } else {
-      depth[id] = Math.max(...[...parents].map(p => getDepth(p))) + 1;
-    }
-    return depth[id];
-  }
-
-  nodeIds.forEach(id => getDepth(id));
-
-  // Group nodes by depth
-  const columns = {};
-  let maxDepth = 0;
-  for (const node of nodes) {
-    const d = depth[node.id] || 0;
-    if (!columns[d]) columns[d] = [];
-    columns[d].push(node);
-    if (d > maxDepth) maxDepth = d;
-  }
-
-  // Assign positions: X by column, Y spread evenly
-  const COL_WIDTH = 320;
-  const ROW_HEIGHT = 180;
-
-  for (let d = 0; d <= maxDepth; d++) {
-    const col = columns[d] || [];
-    const totalHeight = col.length * ROW_HEIGHT;
-    const startY = -totalHeight / 2;
-    col.forEach((node, i) => {
-      node.position = {
-        x: d * COL_WIDTH,
-        y: startY + i * ROW_HEIGHT
-      };
-    });
-  }
-
-  // Store stage info for labels
-  data._stages = {};
-  for (let d = 0; d <= maxDepth; d++) {
-    data._stages[d] = {
-      x: d * COL_WIDTH,
-      count: (columns[d] || []).length
-    };
-  }
-  data._maxDepth = maxDepth;
-}
-
 function initFlow(data) {
   flowData = data;
+  normalizedData = normalizeToV2(data);
   selectedNodeId = null;
-
-  autoLayout(data);
 
   document.getElementById('uploadOverlay').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
 
-  document.getElementById('projectName').textContent = data.meta.project;
+  document.getElementById('projectName').textContent = normalizedData.meta.project;
+  const totalFlows = normalizedData.instruments.reduce((s, i) => s + i.flows.length, 0);
   document.getElementById('projectStats').textContent =
-    `${data.meta.total_steps} шагов · ${data.meta.models_used.length} моделей · ${data.meta.entry_file}`;
+    `${normalizedData.meta.total_instruments || normalizedData.instruments.length} инструм. · ${totalFlows} потоков · ${normalizedData.meta.total_steps} шагов · ${normalizedData.meta.models_used.length} моделей`;
 
-  renderStageLabels();
+  const defaultInstIdx = 0;
+  const defaultFlowIdx = normalizedData.instruments[0].flows.findIndex(f => f.default) || 0;
+  setCurrentFlow(defaultInstIdx, Math.max(0, defaultFlowIdx));
+
+  renderFlowNav();
   renderNodes();
   renderEdges();
   renderMinimap();
   fitView();
-
   resetSidebar();
 }
 
-function renderStageLabels() {
-  const canvas = document.getElementById('canvas');
-  canvas.querySelectorAll('.stage-label, .stage-col').forEach(el => el.remove());
-
-  if (!flowData._stages) return;
-  const stageNames = ['Старт', 'Этап 2', 'Этап 3', 'Этап 4', 'Этап 5', 'Этап 6', 'Этап 7', 'Этап 8', 'Этап 9', 'Этап 10'];
-
-  for (let d = 0; d <= flowData._maxDepth; d++) {
-    const stage = flowData._stages[d];
-    if (!stage) continue;
-
-    const label = document.createElement('div');
-    label.className = 'stage-label';
-    label.style.left = (stage.x + 5000 + 40) + 'px';
-    label.style.top = (5000 - 180) + 'px';
-    label.textContent = d === 0 ? 'Старт' : d === flowData._maxDepth ? 'Финал' : (stageNames[d] || `Этап ${d + 1}`);
-    canvas.appendChild(label);
-
-    if (d > 0) {
-      const col = document.createElement('div');
-      col.className = 'stage-col';
-      col.style.left = (stage.x + 5000 - 20) + 'px';
-      canvas.appendChild(col);
-    }
+function renderFlowNav() {
+  const nav = document.getElementById('flowNav');
+  if (normalizedData.instruments.length <= 1 && normalizedData.instruments[0].flows.length <= 1) {
+    nav.style.display = 'none';
+    return;
   }
+  nav.style.display = 'flex';
+  let html = '';
+
+  normalizedData.instruments.forEach((inst, iIdx) => {
+    if (normalizedData.instruments.length > 1) {
+      html += `<div class="flow-nav-label">${inst.name}</div>`;
+    }
+    html += '<div class="flow-nav-row">';
+    inst.flows.forEach((flow, fIdx) => {
+      const active = iIdx === currentInstrumentIdx && fIdx === currentFlowIdx ? ' active' : '';
+      const cond = flow.condition ? ' conditional' : '';
+      const title = flow.condition ? `if ${flow.condition}` : '';
+      html += `<button class="flow-tab${active}${cond}" title="${title}" onclick="switchFlow(${iIdx},${fIdx})">${flow.name}</button>`;
+    });
+    html += '</div>';
+  });
+
+  nav.innerHTML = html;
+}
+
+function switchFlow(instIdx, flowIdx) {
+  setCurrentFlow(instIdx, flowIdx);
+  selectedNodeId = null;
+  renderFlowNav();
+  renderNodes();
+  renderEdges();
+  renderMinimap();
+  fitView();
+  resetSidebar();
 }
 
 function renderNodes() {
   const canvas = document.getElementById('canvas');
   canvas.querySelectorAll('.node').forEach(el => el.remove());
+  canvas.querySelectorAll('.flow-group-box').forEach(el => el.remove());
 
-  for (let i = 0; i < flowData.nodes.length; i++) {
-    const node = flowData.nodes[i];
-    const stepNum = i + 1;
+  for (const node of currentNodes) {
     const el = document.createElement('div');
     el.className = 'node';
     el.id = `node-${node.id}`;
     el.style.left = (node.position.x + 5000) + 'px';
     el.style.top = (node.position.y + 5000) + 'px';
 
-    const iconClass = node.type === 'llm_call' ? 'llm' : node.type === 'web_fetch' ? 'web' : node.type === 'data_transform' ? 'transform' : 'input';
-    const iconSymbol = node.type === 'llm_call' ? 'AI' : node.type === 'web_fetch' ? '↓' : '⚙';
+    const iconClass = node.type === 'llm_call' ? 'llm' : node.type === 'web_fetch' ? 'web' : node.type === 'data_transform' ? 'transform' : node.type === 'router' ? 'router' : node.type === 'conditional' ? 'conditional' : 'input';
+    const iconSymbol = node.type === 'llm_call' ? 'AI' : node.type === 'web_fetch' ? '↓' : node.type === 'router' ? '⑂' : node.type === 'conditional' ? '?' : '⚙';
 
     const badgeClass = node.trigger === 'manual_button' ? 'badge-manual' : node.execution === 'parallel' ? 'badge-parallel' : 'badge-sequential';
     const badgeText = node.trigger === 'manual_button' ? 'manual' : node.execution;
@@ -1065,7 +1036,6 @@ function renderNodes() {
     const modelText = (node.models || []).map(m => m.split('/').pop()).join(', ');
 
     el.innerHTML = `
-      <div class="node-step">${stepNum}</div>
       <div class="node-connector input-conn"></div>
       <div class="node-connector output-conn"></div>
       <div class="node-header">
@@ -1089,14 +1059,11 @@ function renderNodes() {
 
 function renderEdges() {
   const svg = document.getElementById('edgesSvg');
-  // Keep defs, remove everything else
-  const defs = svg.querySelector('defs');
   svg.innerHTML = '';
-  if (defs) svg.appendChild(defs);
 
-  for (const edge of flowData.edges) {
-    const fromNode = flowData.nodes.find(n => n.id === edge.from);
-    const toNode = flowData.nodes.find(n => n.id === edge.to);
+  for (const edge of currentEdges) {
+    const fromNode = currentNodes.find(n => n.id === edge.from);
+    const toNode = currentNodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) continue;
 
     const x1 = fromNode.position.x + 240 + 5000;
@@ -1108,8 +1075,7 @@ function renderEdges() {
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
-    const typeClass = edge.type === 'context' ? ' edge-context' : edge.type === 'trigger' ? ' edge-trigger' : '';
-    path.setAttribute('class', 'edge-path' + typeClass);
+    path.setAttribute('class', 'edge-path');
     path.dataset.from = edge.from;
     path.dataset.to = edge.to;
     svg.appendChild(path);
@@ -1142,7 +1108,7 @@ function selectNode(nodeId) {
     el.classList.toggle('active', el.dataset.from === nodeId || el.dataset.to === nodeId);
   });
 
-  const node = flowData.nodes.find(n => n.id === nodeId);
+  const node = currentNodes.find(n => n.id === nodeId);
   if (!node) return;
 
   document.getElementById('sidebarTitle').textContent = node.label;
@@ -1154,7 +1120,7 @@ function selectNode(nodeId) {
   const promptHighlighted = (node.prompt_raw || '').replace(/\$\{(\w+)\}/g, '<span class="prompt-var">${$1}</span>');
 
   const inputItems = (node.inputs || []).map(inp => {
-    const isNode = flowData.nodes.find(n => n.id === inp);
+    const isNode = currentNodes.find(n => n.id === inp);
     return `<div class="io-item"><span class="io-dot in"></span>${isNode ? isNode.label : inp}</div>`;
   }).join('');
 
@@ -1162,7 +1128,17 @@ function selectNode(nodeId) {
     `<div class="io-item"><span class="io-dot out"></span>${out}</div>`
   ).join('');
 
+  const currentFlow = normalizedData.instruments[currentInstrumentIdx].flows[currentFlowIdx];
+  const flowInfo = currentFlow.condition
+    ? `${currentFlow.name} <span style="color:var(--accent-orange);font-size:11px;">(${currentFlow.condition})</span>`
+    : currentFlow.name;
+
   document.getElementById('sidebarContent').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-label">Поток</div>
+      <div class="detail-value">${flowInfo}</div>
+    </div>
+
     <div class="detail-section">
       <div class="detail-label">Описание</div>
       <div class="detail-value">${node.description}</div>
@@ -1212,7 +1188,7 @@ function selectNode(nodeId) {
 }
 
 function copyPrompt() {
-  const node = flowData.nodes.find(n => n.id === selectedNodeId);
+  const node = currentNodes.find(n => n.id === selectedNodeId);
   if (node) {
     navigator.clipboard.writeText(node.prompt_raw).then(() => {
       const btn = document.querySelector('.copy-prompt-btn');
@@ -1241,12 +1217,12 @@ function updateSidebarOffsets() {
 }
 
 function renderMinimap() {
-  if (!flowData) return;
+  if (!currentNodes.length) return;
   const minimap = document.getElementById('minimap');
   const mmW = 200, mmH = 120;
 
-  const xs = flowData.nodes.map(n => n.position.x);
-  const ys = flowData.nodes.map(n => n.position.y);
+  const xs = currentNodes.map(n => n.position.x);
+  const ys = currentNodes.map(n => n.position.y);
   const minX = Math.min(...xs) - 50;
   const minY = Math.min(...ys) - 50;
   const maxX = Math.max(...xs) + 290;
@@ -1256,7 +1232,7 @@ function renderMinimap() {
   const scale = Math.min(mmW / rangeX, mmH / rangeY);
 
   let html = '';
-  for (const node of flowData.nodes) {
+  for (const node of currentNodes) {
     const x = (node.position.x - minX) * scale;
     const y = (node.position.y - minY) * scale;
     const w = 240 * scale;
@@ -1322,10 +1298,10 @@ function updateTransform() {
 }
 
 function fitView() {
-  if (!flowData || !flowData.nodes.length) return;
+  if (!currentNodes.length) return;
   const rect = canvasWrap.getBoundingClientRect();
-  const xs = flowData.nodes.map(n => n.position.x + 5000);
-  const ys = flowData.nodes.map(n => n.position.y + 5000);
+  const xs = currentNodes.map(n => n.position.x + 5000);
+  const ys = currentNodes.map(n => n.position.y + 5000);
   const minX = Math.min(...xs) - 60;
   const minY = Math.min(...ys) - 60;
   const maxX = Math.max(...xs) + 300;
